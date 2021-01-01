@@ -2,6 +2,9 @@ name: Deploy to AWS Lambda
 on:
   push:
     branches: [ main ]
+    paths:
+      - '*.py'
+      - 'serverless.yml'
   workflow_dispatch:
 
 jobs:
