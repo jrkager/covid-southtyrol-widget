@@ -2,6 +2,10 @@
 // These must be at the very top of the file. Do not edit.
 // icon-color: deep-gray; icon-glyph: magic;
 
+// script by @johk95
+// data by @ivansieder
+// help from @bmgnrs
+
 // Define URLs based on the corona.rki.de webpage
 const dataUrl = "https://api.corona-bz.simedia.cloud";
 const dateKey = "date"
@@ -11,12 +15,18 @@ const newTotalPositiveKey = "newTotalPositiveTested";
 const pcrIncidenceKey = "sevenDaysIncidencePerOneHundredThousandPositiveTested";
 const totalIncidenceKey = "sevenDaysIncidencePerOneHundredThousandTotalPositiveTested";
 
+const vaccinesUrl = "https://3ld5f27ym3.execute-api.eu-west-1.amazonaws.com/live/vaccinationdata.json";
+const regionKey = "P.A. Bolzano";
+const inhabitantsST = 533439;
+
 const newInfectionsLoc = {"de" : "Neuinfektionen", "it" : "Nuove infezioni", "en" : "New infections"};
 const notAvailableLoc = {"de" : "Daten nicht verfügbar", "it" : "Dati non disponibili", "en" : "Data not available"};
 const incidenceLoc = {"de" : "Inzidenz", "it" : "Incidenza", "en" : "Incidence"};
-const updatedLoc = {"de" : "Aktualisiert am", "it" : "Aggiornato il", "en" : "Updated"};
+const updatedLoc = {"de" : "Akt. am", "it" : "Agg. il", "en" : "Updated"};
 const southtyrolLoc = {"de" : "Südtirol", "it" : "Alto Adige", "en" : "South Tyrol"};
-const chartStartLoc = {"de" : "Diagramm startet am", "it" : "Diagramma parte il", "en" : "Chart since"};
+const chartStartLoc = {"de" : "Kurve startet am", "it" : "Diagramma parte il", "en" : "Chart since"};
+const vaccinatedLoc = {"de" : "Geimpfte", "it" : "vaccinati", "en" : "vaccinated"};
+const ofDosesLoc = {"de" : "der verf. Dosen", "it" : "dei dosi cons.", "en" : "of avail. doses"};
 
 const locInfo = Device.locale().split("_");
 const language = locInfo[0].toLowerCase();
@@ -97,6 +107,12 @@ class LineChart {
 }
 
 
+// fetch JSON data
+let allDays = await new Request(dataUrl).loadJSON();
+// get latest day
+let data = allDays[allDays.length - 1];
+let dateString = getLocaleDate(data[dateKey]);
+
 
 // Initialize Widget
 let widget = await createWidget();
@@ -110,14 +126,11 @@ Script.complete();
 // Build Widget
 async function createWidget(items) {
   const list = new ListWidget();
+  list.setPadding(8, 15, 10, 7);
+  // refresh in an hour
+  list.refreshAfterDate = new Date(Date.now() + 60 * 60 * 1000);
 
   let header, label;
-
-  // fetch JSON data
-  let allDays = await new Request(dataUrl).loadJSON();
-  // get latest day
-  let data = allDays[allDays.length - 1];
-  let dateString = getLocaleDate(data);
 
   // fetch new cases
   const newCasesData = getNewCasesData(data);
@@ -153,43 +166,58 @@ async function createWidget(items) {
     label.font = Font.mediumSystemFont(24);
     label.textColor = getIncidenceColor(incidenceData.value);
 
-    const date1 = list.addText(updatedLoc[language in updatedLoc ? language : fallback] + ":");
-    date1.font = Font.mediumSystemFont(11);
-    date1.textColor = Color.gray();
-    const date2 = list.addText(dateString);
-    date2.font = Font.mediumSystemFont(11);
-    date2.textColor = Color.gray();
-
     if (incidenceData.shouldCache) {
       list.refreshAfterDate = new Date(Date.now() + 60 * 60 * 1000);
     }
   } else {
     label = list.addText("-1");
-    label.font = Font.mediumSystemFont(24);
+    label.font = Font.mediumSystemFont(22);
 
     const err = list.addText(notAvailableLoc[language in notAvailableLoc ? language : fallback]);
     err.font = Font.mediumSystemFont(12);
     err.textColor = Color.red();
   }
-
   //list.addSpacer();
 
-  // fetch new vaccines - not yet published by Land Suedtirol
-  /*
-  const number = await getVaccineData(data);
-  console.log(number);
+  // fetch new vaccines
+  //let regions = await new Request(vaccinesUrl).loadJSON();
+  const vaccineData = await getVaccineData(regionKey);
+  let amount =  vaccineData.value.toLocaleString();
+  let percInh = vaccineData.percOfInh.toLocaleString(locale, {maximumFractionDigits:1,});
+  let percDoses = vaccineData.percOfDoses.toLocaleString(locale, {maximumFractionDigits:1,});
 
-  let amount =  number.value.toLocaleString();
-  console.log(amount);
+  const vaccStack = list.addStack();
+  vaccStack.setPadding(0, 0, 0, 0);
+  vaccStack.layoutHorizontally();
+  vaccStack.centerAlignContent();
+  //emoji = vaccStack.addStack();
+  vaccStack.addText("💉").font = Font.mediumSystemFont(12);
+  vaccStack.addSpacer(2);
+  vaccData = vaccStack.addStack();
+  vaccData.layoutVertically();
+  h1 = vaccData.addText(`${amount} ${vaccinatedLoc[language in vaccinatedLoc ? language : fallback]} (${percInh}%)`);
+  h1.font = Font.mediumSystemFont(10);
+  h1.textColor = Color.gray()
+  vaccData.addSpacer(1);
+  h2 = vaccData.addText(`${percDoses}% ${ofDosesLoc[language in ofDosesLoc ? language : fallback]}`);
+  h2.font = Font.mediumSystemFont(8);
+  h2.textColor = Color.gray();
 
-  header = list.addText("💉 " + amount + " geimpfte");
-  header.font = Font.mediumSystemFont(10);
-  header.textColor = Color.gray()
-  */
 
+  //list.addSpacer();
+  // print update date
+  const date1 = list.addText(updatedLoc[language in updatedLoc ? language : fallback] + ": " + dateString);
+  date1.font = Font.mediumSystemFont(10);
+  date1.textColor = Color.gray();
+  // const date2 = list.addText(dateString);
+  // date2.font = Font.mediumSystemFont(11);
+  // date2.textColor = Color.gray();
+
+  // plot chart
   let incidenceTL = getTimeline(allDays, totalIncidenceKey);
 
-  const firstdate = list.addText(chartStartLoc[language in notAvailableLoc ? language : fallback] + incidenceTL.firstdate.toLocaleString());
+  const firstdate = list.addText(chartStartLoc[language in chartStartLoc ? language : fallback]
+    + " " + getLocaleDate(incidenceTL.firstdate, true));
   firstdate.font = Font.mediumSystemFont(7);
   firstdate.textColor = Color.gray();
 
@@ -217,12 +245,16 @@ async function createWidget(items) {
 
 }
 
-function getLocaleDate(data) {
-  const d = new Date(data[dateKey]);
+function getLocaleDate(date, noday = false) {
+  const d = new Date(date);
   let options = { year: 'numeric', month: 'short', day: 'numeric' };
-  const day = d.toLocaleString(locale, {weekday: "short"}) + ", ";
+  const day = d.toLocaleString(locale, {weekday: "short"});
   const rest = d.toLocaleString(locale, options);
-  return day + rest;
+  if (noday) {
+    return rest;
+  } else {
+    return day + ", " + rest;
+  }
 }
 
 function getTimeline(data, key) {
@@ -240,12 +272,21 @@ function getTimeline(data, key) {
   return {"timeline" : timeline, "firstdate" : firstDate};
 }
 
-// Get vaccine Status - not working yet
-function getVaccineData(data) {
-  const attr = data.vaccinated;
-  return {
-    value: attr,
-  };
+// Get number of given vaccines in region with regionkey
+async function getVaccineData(regionkey) {
+  try {
+    let regions = await new Request(vaccinesUrl).loadJSON();
+    const region = regions[regionkey];
+    return {
+      value: region[0],
+      percOfInh: region[0] / inhabitantsST * 100,
+      percOfDoses: region[1] * 100,
+      areaName: regionkey,
+      shouldCache: false,
+    };
+  } catch (e) {
+    return null;
+  }
 }
 
 function getNewCasesData(data) {
