@@ -1,0 +1,23 @@
+name: Deploy to AWS Lambda
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+env:
+  AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+  AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+         node-version: '15.x'
+      - name: Install serverless tool
+        run: npm install serverless serverless-python-requirements
+      - name: Deploy to AWS Lambda using serverless tool
+        run: serverless deploy -v
