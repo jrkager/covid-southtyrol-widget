@@ -17,16 +17,23 @@ const totalIncidenceKey = "sevenDaysIncidencePerOneHundredThousandTotalPositiveT
 
 const vaccinesUrl = "https://3ld5f27ym3.execute-api.eu-west-1.amazonaws.com/live/vaccinationdata.json";
 const regionKey = "P.A. Bolzano";
+const osmUrl = (location) =>
+  `https://nominatim.openstreetmap.org/reverse?lat=${location.latitude.toFixed(4)}&lon=${location.longitude.toFixed(4)}&zoom=10&addressdetails=0&namedetails=1&extratags=1&format=json`;
+const commUrl = (date) => `https://chart.corona-bz.simedia.cloud/municipality-data/${date}.json`;
+const commIncidenceKey = "fourteenDaysPrevalencePerThousand";
+const commPcrKey = "increaseSinceDayBefore";
+const commAgKey = "increasePositiveAntigenTests";
 const inhabitantsST = 533439;
 
 const newInfectionsLoc = {"de" : "Neuinfektionen", "it" : "Nuove infezioni", "en" : "New infections"};
 const notAvailableLoc = {"de" : "Daten nicht verfügbar", "it" : "Dati non disponibili", "en" : "Data not available"};
 const incidenceLoc = {"de" : "Inzidenz", "it" : "Incidenza", "en" : "Incidence"};
+const incidenceInfoLoc = {"de" : "7 (14) Tage", "it" : "7 (14) gg.", "en" : "7 (14) days"};
 const updatedLoc = {"de" : "Akt. am", "it" : "Agg. il", "en" : "Updated"};
 const southtyrolLoc = {"de" : "Südtirol", "it" : "Alto Adige", "en" : "South Tyrol"};
-const chartStartLoc = {"de" : "Kurve startet am", "it" : "Diagramma parte il", "en" : "Chart since"};
+const chartStartLoc = {"de" : (ndays) => `Kurve zeigt die letzten ${ndays} Tage`, "it" : (ndays) => `Diagramma per gli ultimi ${ndays} giorni`, "en" : (ndays) => `Chart for last ${ndays} days`};
 const vaccinatedLoc = {"de" : "Geimpfte", "it" : "vaccinati", "en" : "vaccinated"};
-const ofDosesLoc = {"de" : "der verf. Dosen", "it" : "dei dosi cons.", "en" : "of avail. doses"};
+const ofDosesLoc = {"de" : "der verf. Dosen", "it" : "dei dosi consegnati", "en" : "of avail. doses"};
 
 const locInfo = Device.locale().split("_");
 const language = locInfo[0].toLowerCase();
@@ -112,6 +119,8 @@ let allDays = await new Request(dataUrl).loadJSON();
 // get latest day
 let data = allDays[allDays.length - 1];
 let dateString = getLocaleDate(data[dateKey]);
+let commData = await getLocalCovidData();
+log(commData);
 
 
 // Initialize Widget
@@ -132,17 +141,24 @@ async function createWidget(items) {
 
   let header, label;
 
-  // fetch new cases
-  const newCasesData = getNewCasesData(data);
-  text = newInfectionsLoc[language in newInfectionsLoc ? language : fallback].toUpperCase();
+  // new cases
+  var text = newInfectionsLoc[language in newInfectionsLoc ? language : fallback].toUpperCase();
   header = list.addText("🦠 " + text);
   header.font = Font.mediumSystemFont(10);
 
+  const casesStack = list.addStack();
+  casesStack.layoutHorizontally();
+  casesStack.bottomAlignContent();
+
+  newCasesST = casesStack.addStack();
+  newCasesST.layoutVertically();
+  // fetch new cases
+  const newCasesData = getNewCasesData(data);
   if (newCasesData) {
-    label = list.addText("+" + newCasesData.value.toLocaleString());
+    label = newCasesST.addText("+" + newCasesData.value.toLocaleString());
     label.font = Font.mediumSystemFont(24);
 
-    const area = list.addText(newCasesData.areaName);
+    const area = newCasesST.addText(newCasesData.areaName);
     area.font = Font.mediumSystemFont(12);
     area.textColor = Color.gray();
   } else {
@@ -153,29 +169,47 @@ async function createWidget(items) {
     err.font = Font.mediumSystemFont(12);
     err.textColor = Color.red();
   }
+  casesStack.addSpacer(14);
+  newCasesComm = casesStack.addStack();
+  newCasesComm.layoutVertically();
+  // fetch new cases
+  if (commData) {
+    label = newCasesComm.addText("(+" + commData.cases.toLocaleString() +")");
+    label.font = Font.mediumSystemFont(18);
+    newCasesComm.addSpacer(3);
+    const area = newCasesComm.addText(commData.areaName);
+    area.font = Font.mediumSystemFont(12);
+    area.textColor = Color.gray();
+  }
 
   list.addSpacer();
 
-  // fetch new incidents
-  const incidenceData = getIncidenceData(data);
-  text = incidenceLoc[language in incidenceLoc ? language : fallback].toUpperCase();
-  header = list.addText("🦠 " + text);
+  // new incidents
+  headerStack = list.addStack();
+  headerStack.bottomAlignContent();
+  header = headerStack.addText("🦠 " + incidenceLoc[language in incidenceLoc ? language : fallback].toUpperCase());
   header.font = Font.mediumSystemFont(10);
-  if (incidenceData) {
-    label = list.addText(incidenceData.value.toLocaleString(locale, {maximumFractionDigits:1,}));
-    label.font = Font.mediumSystemFont(24);
-    label.textColor = getIncidenceColor(incidenceData.value);
+  headerStack.addSpacer(10);
+  incInfo = headerStack.addText(incidenceInfoLoc[language in incidenceLoc ? language : fallback].toUpperCase());
+  incInfo.font = Font.mediumSystemFont(8);
 
-    if (incidenceData.shouldCache) {
-      list.refreshAfterDate = new Date(Date.now() + 60 * 60 * 1000);
+  const incStack = list.addStack();
+  incStack.layoutHorizontally();
+  incStack.bottomAlignContent();
+  const incidenceData = getIncidenceData(data);
+  if (incidenceData) {
+    label = incStack.addText(incidenceData.value.toLocaleString(locale, {maximumFractionDigits:1,}));
+    label.font = Font.mediumSystemFont(22);
+    label.textColor = getIncidenceColor(incidenceData.value);
+    if (commData) {
+      incStack.addSpacer(14);
+      label = incStack.addText("("+commData.incidence.toLocaleString(locale, {maximumFractionDigits:1,})+")");
+      label.font = Font.mediumSystemFont(18);
+      label.textColor = getIncidenceColor(incidenceData.value);
     }
   } else {
-    label = list.addText("-1");
+    label = incStack.addText("NA");
     label.font = Font.mediumSystemFont(22);
-
-    const err = list.addText(notAvailableLoc[language in notAvailableLoc ? language : fallback]);
-    err.font = Font.mediumSystemFont(12);
-    err.textColor = Color.red();
   }
   //list.addSpacer();
 
@@ -203,11 +237,10 @@ async function createWidget(items) {
   h2.font = Font.mediumSystemFont(8);
   h2.textColor = Color.gray();
 
-
-  //list.addSpacer();
+  list.addSpacer(2);
   // print update date
   const date1 = list.addText(updatedLoc[language in updatedLoc ? language : fallback] + ": " + dateString);
-  date1.font = Font.mediumSystemFont(10);
+  date1.font = Font.mediumSystemFont(7);
   date1.textColor = Color.gray();
   // const date2 = list.addText(dateString);
   // date2.font = Font.mediumSystemFont(11);
@@ -216,8 +249,7 @@ async function createWidget(items) {
   // plot chart
   let incidenceTL = getTimeline(allDays, totalIncidenceKey);
 
-  const firstdate = list.addText(chartStartLoc[language in chartStartLoc ? language : fallback]
-    + " " + getLocaleDate(incidenceTL.firstdate, true));
+  const firstdate = list.addText(chartStartLoc[language in chartStartLoc ? language : fallback](incidenceTL.ndays));
   firstdate.font = Font.mediumSystemFont(7);
   firstdate.textColor = Color.gray();
 
@@ -245,8 +277,8 @@ async function createWidget(items) {
 
 }
 
-function getLocaleDate(date, noday = false) {
-  const d = new Date(date);
+function getLocaleDate(datestring, noday = false) {
+  const d = new Date(datestring);
   let options = { year: 'numeric', month: 'short', day: 'numeric' };
   const day = d.toLocaleString(locale, {weekday: "short"});
   const rest = d.toLocaleString(locale, options);
@@ -264,12 +296,14 @@ function getTimeline(data, key) {
     const component = day[key];
     if (component) {
       if (firstDate == "") {
-        firstDate = day[dateKey]
+        firstDate = day[dateKey];
       }
       timeline.push(component);
     }
   }
-  return {"timeline" : timeline, "firstdate" : firstDate};
+  const diffTime = Math.abs(new Date() - new Date(firstDate));
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return {"timeline" : timeline, "firstdate" : firstDate, "ndays" : diffDays};
 }
 
 // Get number of given vaccines in region with regionkey
@@ -282,7 +316,6 @@ async function getVaccineData(regionkey) {
       percOfInh: region[0] / inhabitantsST * 100,
       percOfDoses: region[1] * 100,
       areaName: regionkey,
-      shouldCache: false,
     };
   } catch (e) {
     return null;
@@ -295,7 +328,6 @@ function getNewCasesData(data) {
     return {
       value: newCases,
       areaName: southtyrolLoc[language in southtyrolLoc ? language : fallback],
-      shouldCache: false,
     };
   } catch (e) {
     return null;
@@ -308,7 +340,6 @@ function getIncidenceData(data) {
     return {
       value: incidence,
       areaName: southtyrolLoc[language in southtyrolLoc ? language : fallback],
-      shouldCache: false,
     };
   } catch (e) {
     return null;
@@ -334,5 +365,73 @@ function getIncidenceColor(value) {
     return new Color("B275DE");
   } else {
     return new Color("5F429A");
+  }
+}
+
+
+async function getLocalCovidData() {
+  try {
+    const location = await getLocation();
+    let geo;
+    if (location) {
+      // get current ISTAT code
+      geo = await new Request(osmUrl(location)).loadJSON();
+    }
+    if (location && geo.display_name.includes("Alto Adige")) {
+        istatCode = geo.extratags["ref:ISTAT"];
+        names = {"de" : geo.namedetails["name:de"], "it" : geo.namedetails["name:it"]};
+    } else {
+      // use Bolzano as fallback if location not available or user outside south tyrol. Or should we just return null?
+      log("fallback")
+      istatCode = 021008
+      names = {"de" : "Bozen", "it" : "Bolzano"};
+    }
+    // get latest data
+    testday = new Date();
+    let dateFormatter = new DateFormatter();
+    dateFormatter.dateFormat = "yyyy-MM-dd";
+    let data;
+    let run = 0;
+    const maxRuns = 3;
+    do {
+      todayString = dateFormatter.string(testday);
+      try {
+        data = await new Request(commUrl(todayString)).loadJSON();
+      } catch (e) {}
+      testday.setDate(testday.getDate() - 1);
+      run += 1;
+    } while (run <= maxRuns && (!data || Object.keys(data).length === 0));
+    // get data for current istat code
+    let comm;
+    do {
+      comm = data.pop();
+    } while (comm.municipalityIstatCode != istatCode && data.length);
+    // return specific values
+    if (comm.municipalityIstatCode != istatCode) {
+      return null;
+    } else {
+      return {
+        cases: comm[commPcrKey]+comm[commAgKey],
+        incidence: comm[commIncidenceKey] * 100,
+        areaName: names[language in names ? language : fallback],
+      };
+    }
+  } catch (e) {
+    logWarning(e);
+    return null;
+  }
+}
+
+async function getLocation() {
+  try {
+    if (args.widgetParameter) {
+      const fixedCoordinates = args.widgetParameter.split(",").map(parseFloat);
+      return { latitude: fixedCoordinates[0], longitude: fixedCoordinates[1] };
+    } else {
+      Location.setAccuracyToHundredMeters();
+      return await Location.current();
+    }
+  } catch (e) {
+    return null;
   }
 }
