@@ -1,7 +1,7 @@
-def get_region_json():
-    import requests
-    import json
+import requests
+import json
 
+def get_region_json():
     url = 'https://wabi-europe-north-b-api.analysis.windows.net/public/reports/querydata?synchronous=true' # Set destination URL here
     headers = {'Content-Type':'application/json;charset=UTF-8', 'Accept':'application/json, text/plain, */*', 
     	'Accept-Language':'en-us', 'Accept-Encoding':'gzip, deflate, br', 
@@ -25,4 +25,13 @@ def get_region_json():
     d = cont['results'][0]['result']['data']['dsr']['DS'][0]['PH'][0]['DM0']
     regions = dict((e[0], (e[1], float(e[2]), e[3])) for e in [dd['C'] for dd in d])
 
-    return json.dumps(regions)
+    return regions
+
+def handle_lambda_request(event, context):
+    regions = get_region_json()
+    response = {
+        "statusCode": 200,
+        "body": json.dumps(regions)
+    }
+
+    return response
