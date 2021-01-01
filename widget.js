@@ -18,7 +18,7 @@ const totalIncidenceKey = "sevenDaysIncidencePerOneHundredThousandTotalPositiveT
 const vaccinesUrl = "https://3ld5f27ym3.execute-api.eu-west-1.amazonaws.com/live/vaccinationdata.json";
 const regionKey = "P.A. Bolzano";
 const osmUrl = (location) =>
-  `https://nominatim.openstreetmap.org/reverse?lat=${location.latitude.toFixed(4)}&lon=${location.longitude.toFixed(4)}&zoom=10&addressdetails=0&namedetails=1&extratags=1&format=json`;
+  `https://nominatim.openstreetmap.org/reverse?lat=${location.latitude.toFixed(4)}&lon=${location.longitude.toFixed(4)}&zoom=10&accept-language=en&addressdetails=0&namedetails=1&extratags=1&format=json`;
 const commUrl = (date) => `https://chart.corona-bz.simedia.cloud/municipality-data/${date}.json`;
 const commIncidenceKey = "fourteenDaysPrevalencePerThousand";
 const commPcrKey = "increaseSinceDayBefore";
@@ -33,7 +33,7 @@ const updatedLoc = {"de" : "Akt. am", "it" : "Agg. il", "en" : "Updated"};
 const southtyrolLoc = {"de" : "Südtirol", "it" : "Alto Adige", "en" : "South Tyrol"};
 const chartStartLoc = {"de" : (ndays) => `Kurve zeigt die letzten ${ndays} Tage`, "it" : (ndays) => `Diagramma per gli ultimi ${ndays} giorni`, "en" : (ndays) => `Chart for last ${ndays} days`};
 const vaccinatedLoc = {"de" : "Geimpfte", "it" : "vaccinati", "en" : "vaccinated"};
-const ofDosesLoc = {"de" : "der verf. Dosen", "it" : "dei dosi consegnati", "en" : "of avail. doses"};
+const ofDosesLoc = {"de" : "der verfügbaren Dosen", "it" : "dei dosi consegnati", "en" : "of available doses"};
 
 const locInfo = Device.locale().split("_");
 const language = locInfo[0].toLowerCase();
@@ -120,7 +120,6 @@ let allDays = await new Request(dataUrl).loadJSON();
 let data = allDays[allDays.length - 1];
 let dateString = getLocaleDate(data[dateKey]);
 let commData = await getLocalCovidData();
-log(commData);
 
 
 // Initialize Widget
@@ -169,7 +168,11 @@ async function createWidget(items) {
     err.font = Font.mediumSystemFont(12);
     err.textColor = Color.red();
   }
-  casesStack.addSpacer(14);
+  if (language == "en") {
+    casesStack.addSpacer(10);
+  } else {
+    casesStack.addSpacer(14);
+  }
   newCasesComm = casesStack.addStack();
   newCasesComm.layoutVertically();
   // fetch new cases
@@ -372,18 +375,22 @@ function getIncidenceColor(value) {
 async function getLocalCovidData() {
   try {
     const location = await getLocation();
-    let geo;
+    let istatCode = -1;
+    let names;
     if (location) {
       // get current ISTAT code
-      geo = await new Request(osmUrl(location)).loadJSON();
-    }
-    if (location && geo.display_name.includes("Alto Adige")) {
-        istatCode = geo.extratags["ref:ISTAT"];
-        names = {"de" : geo.namedetails["name:de"], "it" : geo.namedetails["name:it"]};
+      let geo = await new Request(osmUrl(location)).loadJSON();
+      istatCode = geo.extratags["ref:ISTAT"];
+      names = {"de" : geo.namedetails["name:de"], "it" : geo.namedetails["name:it"]};
+      log(geo.display_name);
     } else {
+      logWarning("No GPS data provided. Did you check the permissions for Scriptable?")
+    }
+    // check if in South Tyrol
+    if (istatCode < 021001 || istatCode > 021115) {
       // use Bolzano as fallback if location not available or user outside south tyrol. Or should we just return null?
-      log("fallback")
-      istatCode = 021008
+      log("Location fallback to Bolzano");
+      istatCode = 021008;
       names = {"de" : "Bozen", "it" : "Bolzano"};
     }
     // get latest data
