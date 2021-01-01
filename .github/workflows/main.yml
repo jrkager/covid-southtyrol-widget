@@ -21,10 +21,9 @@ jobs:
         with:
           node-version: '15.x'
       - name: Deploy to AWS Lambda using serverless tool
-        uses: serverless/github-action@master
+        uses: dhollerbach/github-action-serverless-with-python-requirements@master
         with:
-          args: -c "serverless plugin install --name serverless-python-requirements && serverless deploy --verbose"
-          entrypoint: /bin/bash
+          args: '--stage live'
         env:
           AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
           AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
