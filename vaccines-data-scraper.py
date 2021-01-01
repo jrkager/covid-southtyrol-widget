@@ -1,4 +1,4 @@
-def get_region_dict():
+def get_region_json():
     import requests
     import json
 
