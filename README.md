@@ -8,3 +8,5 @@ A Scriptable Widget for Covid statistics of South Tyrol
 - Oben links auf "+" Symbol klicken, dann nach unten zu "Scriptable" blättern, die erste Widget-Größe (small) wählen und auf "Widget hinzufügen" tippen
 - Drücke im Wiggle Mode auf das Widget, um seine Einstellungen zu bearbeiten
 - Wähle unter "Script" das oben erstellte aus
+
+<img src="screenshots/de.jpg" width="200">
