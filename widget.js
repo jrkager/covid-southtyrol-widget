@@ -6,7 +6,7 @@
 // data by @ivansieder
 // help from @bmgnrs
 
-// Define URLs based on the corona.rki.de webpage
+// Define URLs
 const dataUrl = "https://api.corona-bz.simedia.cloud";
 const dateKey = "date"
 const newPositivePCRKey = "newPositiveTested";
@@ -25,6 +25,7 @@ const commPcrKey = "increaseSinceDayBefore";
 const commAgKey = "increasePositiveAntigenTests";
 const inhabitantsST = 533439;
 
+// localization
 const newInfectionsLoc = {"de" : "Neuinfektionen", "it" : "Nuove infezioni", "en" : "New infections"};
 const notAvailableLoc = {"de" : "Daten nicht verfügbar", "it" : "Dati non disponibili", "en" : "Data not available"};
 const incidenceLoc = {"de" : "Inzidenz", "it" : "Incidenza", "en" : "Incidence"};
@@ -35,13 +36,16 @@ const chartStartLoc = {"de" : (ndays) => `Kurve: Inzidenz der letzten ${ndays} T
 const vaccinatedLoc = {"de" : "Geimpfte", "it" : "vaccinati", "en" : "vaccinated"};
 const ofDosesLoc = {"de" : "der verfügbaren Dosen", "it" : "dei dosi consegnati", "en" : "of available doses"};
 
+// settings
 const locInfo = Device.locale().split("_");
 const language = locInfo[0].toLowerCase();
 //const locale = locInfo[1].toLowerCase();
 const locale = language;
 const fallback = "de";
 
+showLocalData = true;
 
+// classes
 class Series{
   constructor(data, ymin=null, ymax=null) {
     this.data = data;
@@ -119,7 +123,11 @@ let allDays = await new Request(dataUrl).loadJSON();
 // get latest day
 let data = allDays[allDays.length - 1];
 let dateString = getLocaleDate(data[dateKey]);
-let commData = await getLocalCovidData();
+// get local data
+let commData = null;
+if (showLocalData) {
+  commData = await getLocalCovidData();
+}
 
 
 // Initialize Widget
@@ -380,17 +388,18 @@ async function getLocalCovidData() {
     if (location) {
       // get current ISTAT code
       let geo = await new Request(osmUrl(location)).loadJSON();
-      istatCode = geo.extratags["ref:ISTAT"];
+      istatCode = parseInt(geo.extratags["ref:ISTAT"]);
       names = {"de" : geo.namedetails["name:de"], "it" : geo.namedetails["name:it"]};
+      log(location);
       log(geo.display_name);
     } else {
       logWarning("No GPS data provided. Did you check the permissions for Scriptable?")
     }
     // check if in South Tyrol
-    if (istatCode < 021001 || istatCode > 021115) {
+    if (istatCode < 21001 || istatCode > 21115) {
       // use Bolzano as fallback if location not available or user outside south tyrol. Or should we just return null?
       log("Location fallback to Bolzano");
-      istatCode = 021008;
+      istatCode = 21008;
       names = {"de" : "Bozen", "it" : "Bolzano"};
     }
     // get latest data
