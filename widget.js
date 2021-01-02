@@ -31,7 +31,7 @@ const incidenceLoc = {"de" : "Inzidenz", "it" : "Incidenza", "en" : "Incidence"}
 const incidenceInfoLoc = {"de" : "7 (14) Tage", "it" : "7 (14) gg.", "en" : "7 (14) days"};
 const updatedLoc = {"de" : "Akt. am", "it" : "Agg. il", "en" : "Updated"};
 const southtyrolLoc = {"de" : "Südtirol", "it" : "Alto Adige", "en" : "South Tyrol"};
-const chartStartLoc = {"de" : (ndays) => `Kurve zeigt die letzten ${ndays} Tage`, "it" : (ndays) => `Diagramma per gli ultimi ${ndays} giorni`, "en" : (ndays) => `Chart for last ${ndays} days`};
+const chartStartLoc = {"de" : (ndays) => `Kurve: Inzidenz der letzten ${ndays} Tage`, "it" : (ndays) => `Diagr.: incidenza negli ultimi ${ndays} gg.`, "en" : (ndays) => `Chart: incidence of past ${ndays} days`};
 const vaccinatedLoc = {"de" : "Geimpfte", "it" : "vaccinati", "en" : "vaccinated"};
 const ofDosesLoc = {"de" : "der verfügbaren Dosen", "it" : "dei dosi consegnati", "en" : "of available doses"};
 
@@ -134,7 +134,7 @@ Script.complete();
 // Build Widget
 async function createWidget(items) {
   const list = new ListWidget();
-  list.setPadding(8, 15, 10, 7);
+  list.setPadding(8, 15, 10, 2);
   // refresh in an hour
   list.refreshAfterDate = new Date(Date.now() + 60 * 60 * 1000);
 
@@ -221,7 +221,7 @@ async function createWidget(items) {
   const vaccineData = await getVaccineData(regionKey);
   let amount =  vaccineData.value.toLocaleString();
   let percInh = vaccineData.percOfInh.toLocaleString(locale, {maximumFractionDigits:1,});
-  let percDoses = vaccineData.percOfDoses.toLocaleString(locale, {maximumFractionDigits:1,});
+  let percDoses = vaccineData.percOfDoses.toLocaleString(locale, {maximumFractionDigits:0,});
 
   const vaccStack = list.addStack();
   vaccStack.setPadding(0, 0, 0, 0);
