@@ -2,7 +2,7 @@ import requests
 import json
 
 def get_region_json():
-    url = 'https://wabi-europe-north-b-api.analysis.windows.net/public/reports/querydata?synchronous=true' # Set destination URL here
+    url = 'https://wabi-europe-north-b-api.analysis.windows.net/public/reports/querydata?synchronous=true'
     headers = {'Content-Type':'application/json;charset=UTF-8', 'Accept':'application/json, text/plain, */*', 
     		'Accept-Language':'en-us', 'Accept-Encoding':'gzip, deflate, br', 
     		'Host':'wabi-europe-north-b-api.analysis.windows.net', 
