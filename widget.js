@@ -200,7 +200,7 @@ async function createWidget(items) {
   headerStack.bottomAlignContent();
   header = headerStack.addText("🦠 " + incidenceLoc[language in incidenceLoc ? language : fallback].toUpperCase());
   header.font = Font.mediumSystemFont(10);
-  headerStack.addSpacer(10);
+  headerStack.addSpacer(6);
   incInfo = headerStack.addText(incidenceInfoLoc[language in incidenceLoc ? language : fallback].toUpperCase());
   incInfo.font = Font.mediumSystemFont(8);
 
