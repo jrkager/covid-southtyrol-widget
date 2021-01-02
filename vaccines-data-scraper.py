@@ -19,7 +19,7 @@ def get_region_json():
     r = requests.post(url, data=json.dumps(post_fields), headers=headers)
     print(r.status_code, r.reason)
     if r.status_code != 200:
-        return "{}"
+        return dict()
     cont=json.loads(r.content)
 
     d = cont['results'][0]['result']['data']['dsr']['DS'][0]['PH'][0]['DM0']
