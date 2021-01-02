@@ -4,10 +4,9 @@ import json
 def get_region_json():
     url = 'https://wabi-europe-north-b-api.analysis.windows.net/public/reports/querydata?synchronous=true' # Set destination URL here
     headers = {'Content-Type':'application/json;charset=UTF-8', 'Accept':'application/json, text/plain, */*', 
-    	'Accept-Language':'en-us', 'Accept-Encoding':'gzip, deflate, br', 
-    	'Host':'wabi-europe-north-b-api.analysis.windows.net', 
+    		'Accept-Language':'en-us', 'Accept-Encoding':'gzip, deflate, br', 
+    		'Host':'wabi-europe-north-b-api.analysis.windows.net', 
 		'Origin':'https://app.powerbi.com', 
-		'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.1 Safari/605.1.15', 
 		'Referer':'https://app.powerbi.com/', 
 		'Content-Length':'2380', 
 		'Connection':'keep-alive', 
