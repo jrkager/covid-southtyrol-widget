@@ -12,4 +12,4 @@ A Scriptable Widget for Covid statistics of South Tyrol
 <img src="screenshots/de.jpg" width="200">
 
 **Vaccination Data**
-Vaccination data is not yet available in a machine-readable format, so we analyzed the API behind https://app.powerbi.com/view?r=eyJrIjoiMzg4YmI5NDQtZDM5ZC00ZTIyLTgxN2MtOTBkMWM4MTUyYTg0IiwidCI6ImFmZDBhNzVjLTg2NzEtNGNjZS05MDYxLTJjYTBkOTJlNDIyZiIsImMiOjh9. A Python function on AWS Lambda reads the output and prepares a JSON file.
+Vaccination data is not yet available in a machine-readable format, so we analyzed the API behind [the government PowerBI site](https://app.powerbi.com/view?r=eyJrIjoiMzg4YmI5NDQtZDM5ZC00ZTIyLTgxN2MtOTBkMWM4MTUyYTg0IiwidCI6ImFmZDBhNzVjLTg2NzEtNGNjZS05MDYxLTJjYTBkOTJlNDIyZiIsImMiOjh9). A [Python function](vaccines-data-scraper.py) on AWS Lambda reads the output and prepares a JSON file.
