@@ -90,12 +90,11 @@ if not latest_date or regjs["date"] > latest_date:
     cont.append(regjs)
     for v in loaded.values():
         v.append('')
-    loaded["impf"][-1] = regjs[savefile_st_calc[:-4]][0]
+    loaded["impf"][-1] = regjs[os.path.basename(savefile_st_calc)[:-4]][0]
     calc(loaded)
-    
+
     with open(savefile_all, "w") as f:
-        out = re.sub(r"(?<=[{ ])'|'(?=[:}])",'"',cont.__str__())
-        f.write(out)
+        json.dump(cont, f)
     with open(savefile_st_calc, "w") as f:
         cwr = csv.writer(f)
         cwr.writerow(header)
