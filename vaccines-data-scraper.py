@@ -22,6 +22,7 @@ def get_region_json():
     cont=json.loads(r.content)
 
     d = cont['results'][0]['result']['data']['dsr']['DS'][0]['PH'][0]['DM0']
+    # e === (name-region, doses used, ratio of available doses that were used, available doses)
     regions = dict((e[0], (e[1], float(e[2]), e[3])) for e in [dd['C'] for dd in d])
 
     return regions
