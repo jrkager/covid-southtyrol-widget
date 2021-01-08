@@ -4,6 +4,7 @@ import os
 import re
 from datetime import datetime
 import csv
+import numpy as np
 
 def get_region_json():
     url = 'https://wabi-europe-north-b-api.analysis.windows.net/public/reports/querydata?synchronous=true'
@@ -39,19 +40,25 @@ def handle_lambda_request(event, context):
 
     return response
 
+def add_row(loaded, vacc_count):
+    for v in loaded.values():
+        v.append('')
+    loaded["vcc"][-1] = vacc_count
+    calc(loaded)
+
 def calc(data):
     intervall=21
-    heute = len(data["impf"]) - 1
+    heute = len(data["vcc"]) - 1
     if heute == 0:
         return
     if heute < intervall + 1:
-        data["d"][heute] = data["impf"][heute]-data["impf"][heute-1]
+        data["d"][heute] = data["vcc"][heute]-data["vcc"][heute-1]
     else:
-        data["d"][heute] = data["impf"][heute]-data["impf"][heute-1]-data["d"][heute-intervall]
+        data["d"][heute] = data["vcc"][heute]-data["vcc"][heute-1]-data["d"][heute-intervall]
     data["sum_1d"][heute] = data["d"][heute] + data["sum_1d"][heute-1]
     data["sum_monotone_1d"][heute] = max([data["sum_1d"][heute],
                                         data["sum_monotone_1d"][heute - 1]])
-    data["sum_2d"][heute] = data["impf"][heute]-data["impf"][heute-1]-data["d"][heute]
+    data["sum_2d"][heute] = data["vcc"][heute]-data["vcc"][heute-1]-data["d"][heute]
     data["sum_monotone_2d"][heute] = max([data["sum_2d"][heute],
                                         data["sum_monotone_2d"][heute - 1]])
 
@@ -63,13 +70,16 @@ def load_csv(filename):
         for h in headers:
             columns[h] = []
         for row in reader:
+            if len(row) == 0 or all(s == '' for s in row):
+                continue
             for h, v in zip(headers, row):
                 columns[h].append(int(v) if v else v)
         return columns
 
 savefile_all = "vacc-history/regioni-history.json"
 savefile_st_calc = "vacc-history/P.A. Bolzano.csv"
-header = ["d","impf","sum_1d","sum_monotone_1d","sum_2d","sum_monotone_2d"]
+date_vaccination_start = "2020-12-27"
+header = ["d","vcc","sum_1d","sum_monotone_1d","sum_2d","sum_monotone_2d"]
 
 if not os.path.exists(savefile_st_calc):
     with open(savefile_st_calc,"w") as f:
@@ -83,15 +93,27 @@ try:
         latest_date = cont[-1]["date"]
 except:
     cont = []
+region_name = os.path.splitext(os.path.basename(savefile_st_calc))[0]
 today=datetime.today().strftime('%Y-%m-%d')
 regjs = get_region_json()
 regjs["date"]=today
-if not latest_date or regjs["date"] > latest_date:
+if not latest_date or today > latest_date:
     cont.append(regjs)
-    for v in loaded.values():
-        v.append('')
-    loaded["impf"][-1] = regjs[os.path.basename(savefile_st_calc)[:-4]][0]
-    calc(loaded)
+
+    today_count = regjs[region_name][0]
+    print("Today counter:",today_count)
+
+    # if not enough rows, fill with interpolation from the last inserted day up to today
+    # (1 entry per day since vaccination start)
+    diff = (datetime.fromisoformat(today)-datetime.fromisoformat(date_vaccination_start)).days
+    days_of_vacc = diff + 1
+    missing_days = days_of_vacc - (len(loaded["vcc"]) - 1)
+    if missing_days > 0:
+        interpolation = map(int,
+                         np.linspace(loaded["vcc"][-1], today_count, missing_days+1)[1:])
+        for count in interpolation:
+            # add row to csv data
+            add_row(loaded, count)
 
     with open(savefile_all, "w") as f:
         json.dump(cont, f)
