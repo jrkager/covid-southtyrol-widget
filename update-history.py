@@ -1,7 +1,6 @@
 import requests
 import json
 import os
-import re
 from datetime import datetime
 import csv
 import numpy as np
