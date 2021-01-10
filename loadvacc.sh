@@ -3,7 +3,7 @@
 # make sure you are on branch data (install-updater.sh puts you there)
 git pull
 
-python vaccines-data-scraper-history.py
+python update-history.py
 
 if ! git diff --quiet vacc-history/P.A.\ Bolzano.csv
 then
