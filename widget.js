@@ -15,15 +15,14 @@ const newTotalPositiveKey = "newTotalPositiveTested";
 const pcrIncidenceKey = "sevenDaysIncidencePerOneHundredThousandPositiveTested";
 const totalIncidenceKey = "sevenDaysIncidencePerOneHundredThousandTotalPositiveTested";
 
-const vaccinesUrl = "https://3ld5f27ym3.execute-api.eu-west-1.amazonaws.com/live/vaccinationdata.json";
 const regionKey = "P.A. Bolzano";
+const vaccinesUrl = (rkey) => `https://raw.githubusercontent.com/jrkager/covid-southtyrol-widget/dev/vacc-history/${encodeURI(rkey)}.csv`;
 const osmUrl = (location) =>
   `https://nominatim.openstreetmap.org/reverse?lat=${location.latitude.toFixed(4)}&lon=${location.longitude.toFixed(4)}&zoom=10&accept-language=en&addressdetails=0&namedetails=1&extratags=1&format=json`;
 const commUrl = (date) => `https://chart.corona-bz.simedia.cloud/municipality-data/${date}.json`;
 const commIncidenceKey = "fourteenDaysPrevalencePerThousand";
 const commPcrKey = "increaseSinceDayBefore";
 const commAgKey = "increasePositiveAntigenTests";
-const inhabitantsST = 533439;
 
 // localization
 const newInfectionsLoc = {"de" : "Neuinfektionen", "it" : "Nuove infezioni", "en" : "New infections"};
@@ -317,15 +316,39 @@ function getTimeline(data, key) {
   return {"timeline" : timeline, "firstdate" : firstDate, "ndays" : diffDays};
 }
 
+
+function csvToJson(allText) {
+    var allTextLines = allText.split(/\r\n|\n/);
+    var headers = allTextLines[0].split(',');
+    var lines = [];
+
+    for (var i=1; i<allTextLines.length; i++) {
+        var data = allTextLines[i].split(',');
+        if (data.length == headers.length) {
+            var row = {};
+            for (var j=0; j<headers.length; j++) {
+              let v = parseFloat(data[j]);
+              if (v == parseInt(v)) {
+                v = parseInt(v);
+              }
+              row[headers[j]] = v;
+            }
+            lines.push(row);
+        }
+    }
+    return lines;
+}
+
 // Get number of given vaccines in region with regionkey
 async function getVaccineData(regionkey) {
   try {
-    let regions = await new Request(vaccinesUrl).loadJSON();
-    const region = regions[regionkey];
+    let rdata = await new Request(vaccinesUrl(regionkey)).loadString();
+    let region = csvToJson(rdata);
+    const last = region.length - 1;
     return {
-      value: region[0],
-      percOfInh: region[0] / inhabitantsST * 100,
-      percOfDoses: region[1] * 100,
+      value: region[last].sum_monotone_1d, // for first dose stats use _1d
+      percOfInh: region[last].perc_inh_monotone_1d * 100,
+      percOfDoses: region[last].perc_doses * 100,
       areaName: regionkey,
     };
   } catch (e) {
