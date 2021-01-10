@@ -33,7 +33,7 @@ const incidenceInfoLoc = {"de" : "7 (14) Tage", "it" : "7 (14) gg.", "en" : "7 (
 const updatedLoc = {"de" : "Akt. am", "it" : "Agg. il", "en" : "Updated"};
 const southtyrolLoc = {"de" : "Südtirol", "it" : "Alto Adige", "en" : "South Tyrol"};
 const chartStartLoc = {"de" : (ndays) => `Kurve: Inzidenz der letzten ${ndays} Tage`, "it" : (ndays) => `Diagr.: incidenza negli ultimi ${ndays} gg.`, "en" : (ndays) => `Chart: incidence of past ${ndays} days`};
-const vaccinatedLoc = {"de" : "Geimpfte", "it" : "vaccinati", "en" : "vaccinated"};
+const vaccinatedLoc = {"de" : "Geimpfte", "it" : "vaccinati", "en" : "vacc."};
 const ofDosesLoc = {"de" : "der verfügbaren Dosen", "it" : "dei dosi consegnati", "en" : "of available doses"};
 
 // settings
@@ -142,7 +142,7 @@ Script.complete();
 // Build Widget
 async function createWidget(items) {
   const list = new ListWidget();
-  list.setPadding(8, 15, 10, 2);
+  list.setPadding(8, 15, 10, 0);
   // refresh in an hour
   list.refreshAfterDate = new Date(Date.now() + 60 * 60 * 1000);
 
