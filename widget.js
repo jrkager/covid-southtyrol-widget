@@ -16,7 +16,7 @@ const pcrIncidenceKey = "sevenDaysIncidencePerOneHundredThousandPositiveTested";
 const totalIncidenceKey = "sevenDaysIncidencePerOneHundredThousandTotalPositiveTested";
 
 const regionKey = "P.A. Bolzano";
-const vaccinesUrl = (rkey) => `https://raw.githubusercontent.com/jrkager/covid-southtyrol-widget/data/vacc-history/${encodeURI(rkey)}.csv`;
+const vaccinesUrl = (rkey) => `https://raw.githubusercontent.com/jrkager/covid-vaccinations-italy/main/vacc-history/${encodeURI(rkey)}.csv`;
 const osmUrl = (location) =>
   `https://nominatim.openstreetmap.org/reverse?lat=${location.latitude.toFixed(4)}&lon=${location.longitude.toFixed(4)}&zoom=10&accept-language=en&addressdetails=0&namedetails=1&extratags=1&format=json`;
 const commUrl = (date) => `https://chart.corona-bz.simedia.cloud/municipality-data/${date}.json`;
