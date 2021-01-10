@@ -8,16 +8,17 @@ import importlib
 
 scraper = importlib.import_module("vaccines-data-scraper")
 
-def subst_last_row(loaded, vacc_count):
+def subst_last_row(loaded, vacc_count, perc_of_doses, inhabitants):
     loaded["vcc"][-1] = vacc_count
-    calc(loaded)
+    loaded["perc_doses"][-1] = perc_of_doses
+    calc(loaded, inhabitants)
 
-def add_row(loaded, vacc_count):
+def add_row(loaded, vacc_count, perc_of_doses, inhabitants):
     for v in loaded.values():
         v.append('')
-    subst_last_row(loaded, vacc_count)
+    subst_last_row(loaded, vacc_count, perc_of_doses, inhabitants)
 
-def calc(data):
+def calc(data, inhabitants):
     intervall=21
     heute = len(data["vcc"]) - 1
     if heute == 0:
@@ -32,6 +33,11 @@ def calc(data):
     data["sum_2d"][heute] = data["vcc"][heute]-data["vcc"][heute-1]-data["d"][heute]
     data["sum_monotone_2d"][heute] = max([data["sum_2d"][heute],
                                         data["sum_monotone_2d"][heute - 1]])
+    if inhabitants > 0:
+        data["perc_inh_1d"][heute] = data["sum_1d"][heute] / inhabitants
+        data["perc_inh_monotone_1d"][heute] = data["sum_monotone_1d"][heute] / inhabitants
+        data["perc_inh_2d"][heute] = data["sum_2d"][heute] / inhabitants
+        data["perc_inh_monotone_2d"][heute] = data["sum_monotone_2d"][heute] / inhabitants
 
 def load_csv(filename):
     with open(filename, 'r') as f:
@@ -44,13 +50,21 @@ def load_csv(filename):
             if len(row) == 0 or all(s == '' for s in row):
                 continue
             for h, v in zip(headers, row):
-                columns[h].append(int(v) if v else v)
+                if v == "":
+                    columns[h].append("")
+                else:
+                    try:
+                        columns[h].append(int(v))
+                    except:
+                        columns[h].append(float(v))
         return columns
 
 savefile_all = "vacc-history/regioni-history.json"
 savefile_st_calc = "vacc-history/P.A. Bolzano.csv"
+inhabitants_file = "popolazione.json"
 date_vaccination_start = "2020-12-27"
-header = ["d","vcc","sum_1d","sum_monotone_1d","sum_2d","sum_monotone_2d"]
+header = ["d","vcc","sum_1d","sum_monotone_1d","sum_2d","sum_monotone_2d",
+        "perc_doses", "perc_inh_1d", "perc_inh_monotone_1d", "perc_inh_2d", "perc_inh_monotone_2d"]
 
 # -- get new data --
 regjs = scraper.get_region_json()
@@ -65,7 +79,15 @@ if not os.path.exists(savefile_st_calc):
 loaded = load_csv(savefile_st_calc)
 
 region_name = os.path.splitext(os.path.basename(savefile_st_calc))[0]
+try:
+    with open(inhabitants_file) as f:
+        r=json.load(f)
+        inhabitants = r[region_name]
+except Exception as e:
+    print(e)
+    inhabitants = -1
 today_count = regjs[region_name][0]
+perc_of_doses = regjs[region_name][1]
 print("Today counter:",today_count)
 
 # -- update calculations for specific region --
@@ -76,15 +98,16 @@ days_of_vacc = diff + 1
 missing_days = days_of_vacc - (len(loaded["vcc"]) - 1)
 if missing_days > 0:
     print("{}: add values for {} day(s)".format(region_name, missing_days))
-    interpolation = map(int,
+    interpolation_count = map(int,
                      np.linspace(loaded["vcc"][-1], today_count, missing_days+1)[1:])
-    for count in interpolation:
+    interpolation_perc = [perc_of_doses] * missing_days
+    for count, perc in zip(interpolation_count, interpolation_perc):
         # add row to csv data
-        add_row(loaded, count)
-elif loaded["vcc"][-1] != today_count:
+        add_row(loaded, count, perc, inhabitants)
+elif loaded["vcc"][-1] != today_count or loaded["perc_doses"][-1] != perc_of_doses:
     # if we started the script for a second time this day, substitute last line with new data
     print("{}: subsitute today with updated calculations".format(region_name))
-    subst_last_row(loaded, today_count)
+    subst_last_row(loaded, today_count, perc_of_doses, inhabitants)
 with open(savefile_st_calc, "w") as f:
     cwr = csv.writer(f)
     cwr.writerow(header)
