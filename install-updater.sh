@@ -5,6 +5,6 @@ git checkout data
 git pull
 
 crontab -l > mycron
-echo "23 00 * * * sh $(pwd)/loadvacc.sh" >> mycron
+echo "*/30 6-23 * * * sh $(pwd)/loadvacc.sh" >> mycron
 crontab mycron
 rm mycron
