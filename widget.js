@@ -23,6 +23,8 @@ const commUrl = (date) => `https://chart.corona-bz.simedia.cloud/municipality-da
 const commIncidenceKey = "fourteenDaysPrevalencePerThousand";
 const commPcrKey = "increaseSinceDayBefore";
 const commAgKey = "increasePositiveAntigenTests";
+const rUrl = (istatcode) => `https://www.markusfalk.com/dashboard/rt.php?istatCode=${istatcode}`;
+const rKey = "rt";
 
 // localization
 const newInfectionsLoc = {"de" : "Neuinfektionen", "it" : "Nuove infezioni", "en" : "New infections"};
@@ -121,11 +123,27 @@ class LineChart {
 let allDays = await new Request(dataUrl).loadJSON();
 // get latest day
 let data = allDays[allDays.length - 1];
+data.rValue = await getRValue("all");
 let dateString = getLocaleDate(data[dateKey]);
 // get local data
 let commData = null;
 if (showLocalData) {
-  commData = await getLocalCovidData();
+  const locData = await getIstatCode();
+  log("Location info", locData);
+  if (locData) {
+    let istatCode = locData.istatCode;
+    let names = locData.names;
+    // check if in South Tyrol
+    if (istatCode < 21001 || istatCode > 21115) {
+      // use Bolzano as fallback if location not available or user outside south tyrol. Or should we just return null?
+      log("Location fallback to Bolzano");
+      istatCode = 21008;
+      names = {"de" : "Bozen", "it" : "Bolzano"};
+    }
+    commData = await getLocalCovidData(istatCode);
+    commData.areaName = names[language in names ? language : fallback];
+    commData.rValue = await getRValue(istatCode);
+  }
 }
 
 
@@ -402,29 +420,18 @@ function getIncidenceColor(value) {
   }
 }
 
-
-async function getLocalCovidData() {
+async function getRValue(istatCode) {
   try {
-    const location = await getLocation();
-    let istatCode = -1;
-    let names;
-    if (location) {
-      // get current ISTAT code
-      let geo = await new Request(osmUrl(location)).loadJSON();
-      istatCode = parseInt(geo.extratags["ref:ISTAT"]);
-      names = {"de" : geo.namedetails["name:de"], "it" : geo.namedetails["name:it"]};
-      log(location);
-      log(geo.display_name);
-    } else {
-      logWarning("No GPS data provided. Did you check the permissions for Scriptable?")
-    }
-    // check if in South Tyrol
-    if (istatCode < 21001 || istatCode > 21115) {
-      // use Bolzano as fallback if location not available or user outside south tyrol. Or should we just return null?
-      log("Location fallback to Bolzano");
-      istatCode = 21008;
-      names = {"de" : "Bozen", "it" : "Bolzano"};
-    }
+    let rdata = await new Request(rUrl(istatCode)).loadJSON();
+    return parseFloat(rdata[rKey]);
+  } catch (e) {
+    logWarning(e);
+    return null;
+  }
+}
+
+async function getLocalCovidData(istatCode) {
+  try {
     // get latest data
     testday = new Date();
     let dateFormatter = new DateFormatter();
@@ -452,7 +459,6 @@ async function getLocalCovidData() {
       return {
         cases: comm[commPcrKey]+comm[commAgKey],
         incidence: comm[commIncidenceKey] * 100,
-        areaName: names[language in names ? language : fallback],
       };
     }
   } catch (e) {
@@ -461,7 +467,43 @@ async function getLocalCovidData() {
   }
 }
 
+async function getIstatCode() {
+  try {
+    const location = await getLocation();
+    let istatCode = -1;
+    let names = {};
+    if (location) {
+      // get current ISTAT code
+      let geo = await new Request(osmUrl(location)).loadJSON();
+      istatCode = parseInt(geo.extratags["ref:ISTAT"]);
+      if (isNaN(istatCode)) {
+        return null;
+      }
+      if ("name:de" in geo.namedetails) {
+        names["de"] = geo.namedetails["name:de"];
+      } else {
+        names["de"] = geo.namedetails["name"];
+      }
+      if ("name:it" in geo.namedetails) {
+        names["it"] = geo.namedetails["name:it"];
+      } else {
+        names["it"] = geo.namedetails["name"];
+      }
+      log(location);
+      log(geo.display_name);
+    } else {
+      logWarning("No GPS data provided. Did you check the permissions for Scriptable?");
+      return null;
+    }
+    return {istatCode : istatCode, names : names};
+  } catch (e) {
+    logWarning(e);
+    return null;
+  }
+}
+
 async function getLocation() {
+  return {latitude: 43.7058, longitude:10.9075}
   try {
     if (args.widgetParameter) {
       const fixedCoordinates = args.widgetParameter.split(",").map(parseFloat);
