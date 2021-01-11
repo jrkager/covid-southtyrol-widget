@@ -118,12 +118,57 @@ class LineChart {
   }
 }
 
+class UI {
+    constructor(view) {
+        if (view instanceof UI) {
+            this.view = this.elem = view.elem
+        } else {
+            this.view = this.elem = view
+        }
+    }
+    stack(type = 'h', padding = false, borderBgColor = false, radius = false, borderWidth = false, size = false) {
+        this.elem = this.view.addStack()
+        if (radius) this.elem.cornerRadius = radius
+        if (borderWidth !== false) {
+            this.elem.borderWidth = borderWidth
+            this.elem.borderColor = new Color(borderBgColor)
+        } else if (borderBgColor) {
+            this.elem.backgroundColor = new Color(borderBgColor)
+        }
+        if (padding) this.elem.setPadding(...padding)
+        if (size) this.elem.size = new Size(size[0], size[1])
+        if (type === 'h') { this.elem.layoutHorizontally() } else { this.elem.layoutVertically() }
+        this.elem.centerAlignContent()
+        return this
+    }
+    text(text, font = false, color = false, maxLines = 0, minScale = 0.9) {
+        let t = this.elem.addText(text)
+        if (color) t.textColor = (typeof color === 'string') ? new Color(color) : color
+        t.font = (font) ? font : Font.mediumSystemFont(12)
+        t.lineLimit = (maxLines > 0 && minScale < 1) ? maxLines + 1 : maxLines
+        t.minimumScaleFactor = minScale
+        return this
+    }
+    space(size) {
+        this.elem.addSpacer(size)
+        return this
+    }
+
+    static paddedStack(list) {
+      const s = list.addStack();
+      s.setPadding(0,0,0,0);
+      return s;
+    }
+}
+
 
 // fetch JSON data
 let allDays = await new Request(dataUrl).loadJSON();
 // get latest day
 let data = allDays[allDays.length - 1];
-data.rValue = await getRValue("all");
+if (data) {
+  data.rValue = await getRValue("all");
+}
 let dateString = getLocaleDate(data[dateKey]);
 // get local data
 let commData = null;
@@ -159,18 +204,38 @@ Script.complete();
 // Build Widget
 async function createWidget(items) {
   const list = new ListWidget();
-  list.setPadding(8, 15, 10, 0);
+  list.setPadding(0, 1, 0, 0);
   // refresh in an hour
   list.refreshAfterDate = new Date(Date.now() + 60 * 60 * 1000);
 
   let header, label;
 
-  // new cases
-  var text = newInfectionsLoc[language in newInfectionsLoc ? language : fallback].toUpperCase();
-  header = list.addText("🦠 " + text);
-  header.font = Font.mediumSystemFont(10);
+  let topBar = new UI(list).stack('h', [0, 0, 2, 0])
+  topBar.text("🦠", Font.mediumSystemFont(22))
+  topBar.space(2)
 
-  const casesStack = list.addStack();
+  if ( ! data ) {
+      topBar.space()
+      list.addSpacer()
+      let statusError = new UI(list).stack('v', [4, 6, 4, 6])
+      //todo text translation
+      statusError.text('Daten konnten nicht geladen werden. \n\nBitte später nochmal versuchen.')
+      list.addSpacer(4)
+      return list
+  }
+
+  let topRStack = new UI(topBar).stack('v', [0,0,0,0])
+  let rtext = data.rValue.toLocaleString(locale) + 'ᴿ';
+  if (showLocalData && commData) {
+    rtext = rtext + "  (" + commData.rValue.toLocaleString(locale) + 'ᴿ)';
+  }
+  topRStack.text(rtext, Font.mediumSystemFont(15))
+  topRStack.text(dateString, Font.boldSystemFont(9), '#777')
+
+
+  // new cases
+
+  const casesStack = UI.paddedStack(list);
   casesStack.layoutHorizontally();
   casesStack.bottomAlignContent();
 
@@ -180,7 +245,7 @@ async function createWidget(items) {
   const newCasesData = getNewCasesData(data);
   if (newCasesData) {
     label = newCasesST.addText("+" + newCasesData.value.toLocaleString());
-    label.font = Font.mediumSystemFont(24);
+    label.font = Font.mediumSystemFont(20);
 
     const area = newCasesST.addText(newCasesData.areaName);
     area.font = Font.mediumSystemFont(12);
@@ -204,24 +269,24 @@ async function createWidget(items) {
   if (commData) {
     label = newCasesComm.addText("(+" + commData.cases.toLocaleString() +")");
     label.font = Font.mediumSystemFont(18);
-    newCasesComm.addSpacer(3);
+    newCasesComm.addSpacer(2);
     const area = newCasesComm.addText(commData.areaName);
     area.font = Font.mediumSystemFont(12);
     area.textColor = Color.gray();
   }
 
-  list.addSpacer();
+  list.addSpacer(4);
 
   // new incidents
-  headerStack = list.addStack();
+  const headerStack = UI.paddedStack(list);
   headerStack.bottomAlignContent();
-  header = headerStack.addText("🦠 " + incidenceLoc[language in incidenceLoc ? language : fallback].toUpperCase());
+  header = headerStack.addText(incidenceLoc[language in incidenceLoc ? language : fallback].toUpperCase() + ":");
   header.font = Font.mediumSystemFont(10);
   headerStack.addSpacer(6);
   incInfo = headerStack.addText(incidenceInfoLoc[language in incidenceLoc ? language : fallback].toUpperCase());
   incInfo.font = Font.mediumSystemFont(8);
 
-  const incStack = list.addStack();
+  const incStack = UI.paddedStack(list);
   incStack.layoutHorizontally();
   incStack.bottomAlignContent();
   const incidenceData = getIncidenceData(data);
@@ -248,8 +313,7 @@ async function createWidget(items) {
   let percInh = vaccineData.percOfInh.toLocaleString(locale, {maximumFractionDigits:1,});
   let percDoses = vaccineData.percOfDoses.toLocaleString(locale, {maximumFractionDigits:0,});
 
-  const vaccStack = list.addStack();
-  vaccStack.setPadding(0, 0, 0, 0);
+  const vaccStack = UI.paddedStack(list);
   vaccStack.layoutHorizontally();
   vaccStack.centerAlignContent();
   //emoji = vaccStack.addStack();
@@ -266,18 +330,12 @@ async function createWidget(items) {
   h2.textColor = Color.gray();
 
   list.addSpacer(2);
-  // print update date
-  const date1 = list.addText(updatedLoc[language in updatedLoc ? language : fallback] + ": " + dateString);
-  date1.font = Font.mediumSystemFont(7);
-  date1.textColor = Color.gray();
-  // const date2 = list.addText(dateString);
-  // date2.font = Font.mediumSystemFont(11);
-  // date2.textColor = Color.gray();
 
   // plot chart
   let incidenceTL = getTimeline(allDays, totalIncidenceKey);
 
-  const firstdate = list.addText(chartStartLoc[language in chartStartLoc ? language : fallback](incidenceTL.ndays));
+  const dateStack = UI.paddedStack(list);
+  const firstdate = dateStack.addText(chartStartLoc[language in chartStartLoc ? language : fallback](incidenceTL.ndays));
   firstdate.font = Font.mediumSystemFont(7);
   firstdate.textColor = Color.gray();
 
@@ -503,7 +561,6 @@ async function getIstatCode() {
 }
 
 async function getLocation() {
-  return {latitude: 43.7058, longitude:10.9075}
   try {
     if (args.widgetParameter) {
       const fixedCoordinates = args.widgetParameter.split(",").map(parseFloat);
