@@ -14,15 +14,20 @@ const newPositiveAntigenKey = "newPositiveAntigenTests";
 const newTotalPositiveKey = "newTotalPositiveTested";
 const pcrIncidenceKey = "sevenDaysIncidencePerOneHundredThousandPositiveTested";
 const totalIncidenceKey = "sevenDaysIncidencePerOneHundredThousandTotalPositiveTested";
+const totalIncidenceDays = 7;
 
 const regionKey = "P.A. Bolzano";
 const vaccinesUrl = (rkey) => `https://raw.githubusercontent.com/jrkager/covid-vaccinations-italy/main/vacc-history/${encodeURI(rkey)}.csv`;
+const showFirstDose = true; // set to false if you want to see data related to second doses
+
 const osmUrl = (location) =>
   `https://nominatim.openstreetmap.org/reverse?lat=${location.latitude.toFixed(4)}&lon=${location.longitude.toFixed(4)}&zoom=10&accept-language=en&addressdetails=0&namedetails=1&extratags=1&format=json`;
 const commUrl = (date) => `https://chart.corona-bz.simedia.cloud/municipality-data/${date}.json`;
 const commIncidenceKey = "fourteenDaysPrevalencePerThousand";
 const commPcrKey = "increaseSinceDayBefore";
 const commAgKey = "increasePositiveAntigenTests";
+const commIncidenceDays = 14;
+
 const rUrl = (istatcode) => `https://www.markusfalk.com/dashboard/rt.php?istatCode=${istatcode}`;
 const rKey = "rt";
 
@@ -30,7 +35,7 @@ const rKey = "rt";
 const newInfectionsLoc = {"de" : "Neuinfektionen", "it" : "Nuove infezioni", "en" : "New infections"};
 const notAvailableLoc = {"de" : "Daten nicht verfügbar", "it" : "Dati non disponibili", "en" : "Data not available"};
 const incidenceLoc = {"de" : "Inzidenz", "it" : "Incidenza", "en" : "Incidence"};
-const incidenceInfoLoc = {"de" : "7 (14) Tage", "it" : "7 (14) gg.", "en" : "7 (14) days"};
+const incidenceInfoLoc = {"de" : "Tage", "it" : "gg.", "en" : "days"};
 const updatedLoc = {"de" : "Akt. am", "it" : "Agg. il", "en" : "Updated"};
 const southtyrolLoc = {"de" : "Südtirol", "it" : "Alto Adige", "en" : "South Tyrol"};
 const chartStartLoc = {"de" : (ndays) => `Kurve: Inzidenz der letzten ${ndays} Tage`, "it" : (ndays) => `Diagr.: incidenza negli ultimi ${ndays} gg.`, "en" : (ndays) => `Chart: incidence of past ${ndays} days`};
@@ -43,8 +48,10 @@ const language = locInfo[0].toLowerCase();
 //const locale = locInfo[1].toLowerCase();
 const locale = language;
 const fallback = "de";
-
-showLocalData = true;
+// set to false if you want to disable local (gemeinden) data
+const showLocalData = false;
+// number of days you want to display in the chart. set -1 to disable chart
+const nDaysInChart = 45;
 
 // classes
 class Series{
@@ -283,7 +290,12 @@ async function createWidget(items) {
   header = headerStack.addText(incidenceLoc[language in incidenceLoc ? language : fallback].toUpperCase() + ":");
   header.font = Font.mediumSystemFont(10);
   headerStack.addSpacer(6);
-  incInfo = headerStack.addText(incidenceInfoLoc[language in incidenceLoc ? language : fallback].toUpperCase());
+  let incinfotext = totalIncidenceDays.toString();
+  if (showLocalData) {
+    incinfotext += " (" + commIncidenceDays.toString() + ")";
+  }
+  incinfotext += " " + incidenceInfoLoc[language in incidenceLoc ? language : fallback].toUpperCase();
+  incInfo = headerStack.addText(incinfotext);
   incInfo.font = Font.mediumSystemFont(8);
 
   const incStack = UI.paddedStack(list);
@@ -332,32 +344,34 @@ async function createWidget(items) {
   list.addSpacer(2);
 
   // plot chart
-  let incidenceTL = getTimeline(allDays, totalIncidenceKey);
+  if (nDaysInChart > 0) {
+    let incidenceTL = getTimeline(allDays.slice(allDays.length - nDaysInChart, allDays.length), totalIncidenceKey);
 
-  const dateStack = UI.paddedStack(list);
-  const firstdate = dateStack.addText(chartStartLoc[language in chartStartLoc ? language : fallback](incidenceTL.ndays));
-  firstdate.font = Font.mediumSystemFont(7);
-  firstdate.textColor = Color.gray();
+    const dateStack = UI.paddedStack(list);
+    const firstdate = dateStack.addText(chartStartLoc[language in chartStartLoc ? language : fallback](incidenceTL.ndays));
+    firstdate.font = Font.mediumSystemFont(7);
+    firstdate.textColor = Color.gray();
 
-  let chart = new LineChart(800, 800, null, new Series(incidenceTL.timeline,0)).configure((ctx, pathA, pathB) => {
-    ctx.opaque = false;
-    ctx.setFillColor(new Color("888888", .5));
-    if (pathA) {
-      ctx.addPath(pathA);
-      ctx.fillPath(pathA);
-    }
-    if (pathB) {
-      ctx.addPath(pathB);
-      if (Device.isUsingDarkAppearance()) {
-        ctx.setStrokeColor(Color.white());
-      } else {
-        ctx.setStrokeColor(Color.black());
+    let chart = new LineChart(800, 800, null, new Series(incidenceTL.timeline,0)).configure((ctx, pathA, pathB) => {
+      ctx.opaque = false;
+      ctx.setFillColor(new Color("888888", .5));
+      if (pathA) {
+        ctx.addPath(pathA);
+        ctx.fillPath(pathA);
       }
-      ctx.setLineWidth(1);
-      ctx.strokePath();
-    }
-  }).getImage();
-  list.backgroundImage = chart;
+      if (pathB) {
+        ctx.addPath(pathB);
+        if (Device.isUsingDarkAppearance()) {
+          ctx.setStrokeColor(Color.white());
+        } else {
+          ctx.setStrokeColor(Color.black());
+        }
+        ctx.setLineWidth(1);
+        ctx.strokePath();
+      }
+    }).getImage();
+    list.backgroundImage = chart;
+  }
 
   return list;
 
@@ -421,12 +435,21 @@ async function getVaccineData(regionkey) {
     let rdata = await new Request(vaccinesUrl(regionkey)).loadString();
     let region = csvToJson(rdata);
     const last = region.length - 1;
-    return {
-      value: region[last].sum_monotone_1d, // for first dose stats use _1d
-      percOfInh: region[last].perc_inh_monotone_1d * 100,
-      percOfDoses: region[last].perc_doses * 100,
-      areaName: regionkey,
-    };
+    if (showFirstDose) {
+      return {
+        value: region[last].sum_monotone_1d,
+        percOfInh: region[last].perc_inh_monotone_1d,
+        percOfDoses: region[last].perc_doses,
+        areaName: regionkey,
+      };
+    }else{
+      return {
+        value: region[last].sum_monotone_2d,
+        percOfInh: region[last].perc_inh_monotone_2d,
+        percOfDoses: region[last].perc_doses,
+        areaName: regionkey,
+      };
+    }
   } catch (e) {
     return null;
   }
