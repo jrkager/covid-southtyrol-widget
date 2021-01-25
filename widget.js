@@ -444,14 +444,14 @@ async function getVaccineData(regionkey) {
       return {
         value: region[last].sum_monotone_1d,
         percOfInh: region[last].perc_inh_monotone_1d,
-        percOfDoses: region[last].perc_doses,
+        percOfDoses: max(100.0,region[last].perc_doses),
         areaName: regionkey,
       };
     }else{
       return {
         value: region[last].sum_monotone_2d,
         percOfInh: region[last].perc_inh_monotone_2d,
-        percOfDoses: region[last].perc_doses,
+        percOfDoses: max(100.0,region[last].perc_doses),
         areaName: regionkey,
       };
     }
