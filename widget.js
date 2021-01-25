@@ -6,6 +6,23 @@
 // data by @ivansieder
 // help from @bmgnrs
 
+
+// -- SETTINGS --
+// set to false if you want to disable local (gemeinden) data
+const showLocalData = true;
+// number of days you want to display in the chart. set -1 to disable chart
+const nDaysInChart = 45;
+// set to false if you want to see data related to second doses
+const showFirstDose = true;
+
+// languages
+const locInfo = Device.locale().split("_");
+const language = locInfo[0].toLowerCase();
+//const locale = locInfo[1].toLowerCase();
+const locale = language;
+const fallback = "de";
+
+
 // Define URLs
 const dataUrl = "https://api.corona-bz.simedia.cloud";
 const dateKey = "date"
@@ -18,7 +35,6 @@ const totalIncidenceDays = 7;
 
 const regionKey = "P.A. Bolzano";
 const vaccinesUrl = (rkey) => `https://raw.githubusercontent.com/jrkager/covid-vaccinations-italy/main/vacc-history/${encodeURI(rkey)}.csv`;
-const showFirstDose = true; // set to false if you want to see data related to second doses
 
 const osmUrl = (location) =>
   `https://nominatim.openstreetmap.org/reverse?lat=${location.latitude.toFixed(4)}&lon=${location.longitude.toFixed(4)}&zoom=10&accept-language=en&addressdetails=0&namedetails=1&extratags=1&format=json`;
@@ -41,17 +57,6 @@ const southtyrolLoc = {"de" : "Südtirol", "it" : "Alto Adige", "en" : "South Ty
 const chartStartLoc = {"de" : (ndays) => `Kurve: Inzidenz der letzten ${ndays} Tage`, "it" : (ndays) => `Diagr.: incidenza negli ultimi ${ndays} gg.`, "en" : (ndays) => `Chart: incidence of past ${ndays} days`};
 const vaccinatedLoc = {"de" : "Geimpfte", "it" : "vaccinati", "en" : "vacc."};
 const ofDosesLoc = {"de" : "der verfügbaren Dosen", "it" : "dei dosi consegnati", "en" : "of available doses"};
-
-// settings
-const locInfo = Device.locale().split("_");
-const language = locInfo[0].toLowerCase();
-//const locale = locInfo[1].toLowerCase();
-const locale = language;
-const fallback = "de";
-// set to false if you want to disable local (gemeinden) data
-const showLocalData = false;
-// number of days you want to display in the chart. set -1 to disable chart
-const nDaysInChart = 45;
 
 // classes
 class Series{
