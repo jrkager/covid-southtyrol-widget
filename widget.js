@@ -302,7 +302,7 @@ async function createWidget(items) {
   header.font = Font.mediumSystemFont(10);
   headerStack.addSpacer(6);
   let incinfotext = totalIncidenceDays.toString();
-  if (showLocalData) {
+  if (showLocalData && commData) {
     incinfotext += " (" + commIncidenceDays.toString() + ")";
   }
   incinfotext += " " + incidenceInfoLoc[language in incidenceLoc ? language : fallback].toUpperCase();
@@ -448,15 +448,15 @@ async function getVaccineData(regionkey) {
     const last = region.length - 1;
     if (showFirstDose) {
       return {
-        value: region[last].sum_monotone_1d,
-        percOfInh: region[last].perc_inh_monotone_1d,
+        value: region[last].sum_1d,
+        percOfInh: region[last].perc_inh_1d,
         percOfDoses: Math.min(100.0,region[last].perc_doses),
         areaName: regionkey,
       };
     }else{
       return {
-        value: region[last].sum_monotone_2d,
-        percOfInh: region[last].perc_inh_monotone_2d,
+        value: region[last].sum_2d,
+        percOfInh: region[last].perc_inh_2d,
         percOfDoses: Math.min(100.0,region[last].perc_doses),
         areaName: regionkey,
       };
