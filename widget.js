@@ -3,7 +3,7 @@
 // icon-color: deep-gray; icon-glyph: magic;
 
 // script by @johk95
-// data by @ivansieder
+// data by @ivansieder (cases), Governo Italiano (vaccines), Markus Falk (R-value)
 // help from @bmgnrs
 
 
