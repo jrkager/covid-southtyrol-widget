@@ -236,13 +236,19 @@ async function createWidget(items) {
       return list
   }
 
-  let topRStack = new UI(topBar).stack('v', [0,0,0,0])
-  let rtext = data.rValue.toLocaleString(locale) + 'ᴿ';
-  if (showLocalData && commData) {
-    rtext = rtext + "  (" + commData.rValue.toLocaleString(locale) + 'ᴿ)';
+  let topRStack = new UI(topBar).stack('v', [0,0,0,0]);
+  let rtext = ""
+  if ( data.rValue ) {
+    rtext = data.rValue.toLocaleString(locale) + 'ᴿ';
+    if (showLocalData && commData && commData.rValue) {
+        rtext = rtext + "  (" + commData.rValue.toLocaleString(locale) + 'ᴿ)';
+    }
+  }  else {
+    rtext = "N/A"
   }
-  topRStack.text(rtext, Font.mediumSystemFont(15))
-  topRStack.text(dateString, Font.boldSystemFont(9), '#777')
+  topRStack.text(rtext, Font.mediumSystemFont(15));
+  topRStack.text(dateString, Font.boldSystemFont(9), '#777');
+
 
 
   // new cases
