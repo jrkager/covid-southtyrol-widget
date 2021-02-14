@@ -363,7 +363,9 @@ async function createWidget(items) {
     firstdate.font = Font.mediumSystemFont(7);
     firstdate.textColor = Color.gray();
 
-    let chart = new LineChart(800, 800, null, new Series(incidenceTL.timeline,0)).configure((ctx, pathA, pathB) => {
+    let chart = new LineChart(800, 800, null,
+              new Series(incidenceTL.timeline,0,1.1*Math.max(...incidenceTL.timeline))
+            ).configure((ctx, pathA, pathB) => {
       ctx.opaque = false;
       ctx.setFillColor(new Color("888888", .5));
       if (pathA) {
