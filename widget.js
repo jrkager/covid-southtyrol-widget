@@ -13,7 +13,7 @@ const showLocalData = true;
 // number of days you want to display in the chart. set -1 to disable chart
 const nDaysInChart = 45;
 // set to false if you want to see data related to second doses
-const showFirstDose = true;
+const showFirstDose = false;
 
 // languages
 const locInfo = Device.locale().split("_");
