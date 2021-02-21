@@ -374,11 +374,7 @@ async function createWidget(items) {
       }
       if (pathB) {
         ctx.addPath(pathB);
-        if (Device.isUsingDarkAppearance()) {
-          ctx.setStrokeColor(Color.white());
-        } else {
-          ctx.setStrokeColor(Color.black());
-        }
+        ctx.setStrokeColor(Color.dynamic(Color.black(), Color.white()));
         ctx.setLineWidth(1);
         ctx.strokePath();
       }
