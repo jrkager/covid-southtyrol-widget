@@ -12,8 +12,9 @@
 const showLocalData = true;
 // number of days you want to display in the chart. set -1 to disable chart
 const nDaysInChart = 45;
-// set to false if you want to see data related to second doses
-const showFirstDose = false;
+// set to true if you want to see absolute numbers of vaccinations instead of
+// percentual numbers
+const showAbsoluteVaccData = false;
 
 // languages
 const locInfo = Device.locale().split("_");
@@ -332,8 +333,10 @@ async function createWidget(items) {
   // fetch new vaccines
   //let regions = await new Request(vaccinesUrl).loadJSON();
   const vaccineData = await getVaccineData(regionKey);
-  let amount =  vaccineData.value.toLocaleString();
-  let percInh = vaccineData.percOfInh.toLocaleString(locale, {maximumFractionDigits:1,});
+  let value1d =  vaccineData.value1d.toLocaleString();
+  let value2d =  vaccineData.value2d.toLocaleString();
+  let percInh1d = vaccineData.percOfInh1d.toLocaleString(locale, {maximumFractionDigits:1,});
+  let percInh2d = vaccineData.percOfInh2d.toLocaleString(locale, {maximumFractionDigits:1,});
   let percDoses = vaccineData.percOfDoses.toLocaleString(locale, {maximumFractionDigits:0,});
 
   const vaccStack = UI.paddedStack(list);
@@ -344,7 +347,7 @@ async function createWidget(items) {
   vaccStack.addSpacer(2);
   vaccData = vaccStack.addStack();
   vaccData.layoutVertically();
-  h1 = vaccData.addText(`${amount} ${vaccinatedLoc[language in vaccinatedLoc ? language : fallback]} (${percInh}%)`);
+  h1 = vaccData.addText(`1D: ${percInh1d}% / 2D: ${percInh2d}%`);
   h1.font = Font.mediumSystemFont(10);
   h1.textColor = Color.gray()
   vaccData.addSpacer(1);
@@ -444,21 +447,14 @@ async function getVaccineData(regionkey) {
     let rdata = await new Request(vaccinesUrl(regionkey)).loadString();
     let region = csvToJson(rdata);
     const last = region.length - 1;
-    if (showFirstDose) {
-      return {
-        value: region[last].sum_1d,
-        percOfInh: region[last].perc_inh_1d,
+    return {
+        value1d: region[last].sum_1d,
+        value2d: region[last].sum_1d,
+        percOfInh1d: region[last].perc_inh_1d,
+        percOfInh2d: region[last].perc_inh_2d,
         percOfDoses: Math.min(100.0,region[last].perc_doses),
         areaName: regionkey,
       };
-    }else{
-      return {
-        value: region[last].sum_2d,
-        percOfInh: region[last].perc_inh_2d,
-        percOfDoses: Math.min(100.0,region[last].perc_doses),
-        areaName: regionkey,
-      };
-    }
   } catch (e) {
     return null;
   }
