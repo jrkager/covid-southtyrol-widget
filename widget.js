@@ -12,9 +12,6 @@
 const showLocalData = true;
 // number of days you want to display in the chart. set -1 to disable chart
 const nDaysInChart = 45;
-// set to true if you want to see absolute numbers of vaccinations instead of
-// percentual numbers
-const showAbsoluteVaccData = false;
 
 // languages
 const locInfo = Device.locale().split("_");
