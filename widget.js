@@ -330,11 +330,19 @@ async function createWidget(items) {
   // fetch new vaccines
   //let regions = await new Request(vaccinesUrl).loadJSON();
   const vaccineData = await getVaccineData(regionKey);
-  let value1d =  vaccineData.value1d.toLocaleString();
-  let value2d =  vaccineData.value2d.toLocaleString();
-  let percInh1d = vaccineData.percOfInh1d.toLocaleString(locale, {maximumFractionDigits:1,});
-  let percInh2d = vaccineData.percOfInh2d.toLocaleString(locale, {maximumFractionDigits:1,});
-  let percDoses = vaccineData.percOfDoses.toLocaleString(locale, {maximumFractionDigits:0,});
+
+  let value1d;
+  let value2d;
+  let percInh1d;
+  let percInh2d;
+  let percDoses;
+  if (vaccineData) {
+    value1d =  vaccineData.value1d.toLocaleString();
+    value2d =  vaccineData.value2d.toLocaleString();
+    percInh1d = vaccineData.percOfInh1d.toLocaleString(locale, {maximumFractionDigits:1,});
+    percInh2d = vaccineData.percOfInh2d.toLocaleString(locale, {maximumFractionDigits:1,});
+    percDoses = vaccineData.percOfDoses.toLocaleString(locale, {maximumFractionDigits:0,});
+  }
 
   const vaccStack = UI.paddedStack(list);
   vaccStack.layoutHorizontally();
@@ -344,11 +352,19 @@ async function createWidget(items) {
   vaccStack.addSpacer(2);
   vaccData = vaccStack.addStack();
   vaccData.layoutVertically();
-  h1 = vaccData.addText(`1D: ${percInh1d}% / 2D: ${percInh2d}%`);
+  if (vaccineData) {
+    h1 = vaccData.addText(`1D: ${percInh1d}% / 2D: ${percInh2d}%`);
+  } else {
+    h1 = vaccData.addText("N/A");
+  }
   h1.font = Font.mediumSystemFont(10);
   h1.textColor = Color.gray()
   vaccData.addSpacer(1);
-  h2 = vaccData.addText(`${percDoses}% ${ofDosesLoc[language in ofDosesLoc ? language : fallback]}`);
+  if (vaccineData) {
+    h2 = vaccData.addText(`${percDoses}% ${ofDosesLoc[language in ofDosesLoc ? language : fallback]}`);
+  } else {
+    h2 = vaccData.addText("N/A");
+  }
   h2.font = Font.mediumSystemFont(8);
   h2.textColor = Color.gray();
 
