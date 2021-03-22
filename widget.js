@@ -198,9 +198,9 @@ if (showLocalData) {
     commData = await getLocalCovidData(istatCode);
     commData.areaName = names[language in names ? language : fallback];
     commData.rValue = await getRValue(istatCode);
-  }
-  if (commData.cases == null && commData.incidence == null) {
-    commData = null;
+    if (commData.cases == null && commData.incidence == null) {
+      commData = null;
+    }
   }
 }
 
