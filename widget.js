@@ -9,7 +9,7 @@
 
 // -- SETTINGS --
 // set to false if you want to disable local (gemeinden) data
-const showLocalData = false;
+const showLocalData = true;
 // number of days you want to display in the chart. set -1 to disable chart
 const nDaysInChart = 45;
 
@@ -38,7 +38,7 @@ const vaccinesUrl = (rkey) => `https://raw.githubusercontent.com/jrkager/covid-v
 const osmUrl = (location) =>
   `https://nominatim.openstreetmap.org/reverse?lat=${location.latitude.toFixed(4)}&lon=${location.longitude.toFixed(4)}&zoom=10&accept-language=en&addressdetails=0&namedetails=1&extratags=1&format=json`;
 const commUrl = (date) => `https://chart.corona-bz.simedia.cloud/municipality-data/${date}.json`;
-const commIncidenceKey = "fourteenDaysPrevalencePerThousand";
+const commIncidenceKey = "fourteenDaysPrevalencePerThousandNOTWORKING";
 const commPcrKey = "increaseSinceDayBefore";
 const commAgKey = "increasePositiveAntigenTests";
 const commIncidenceDays = 14;
