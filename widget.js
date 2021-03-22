@@ -9,9 +9,10 @@
 
 // -- SETTINGS --
 // set to false if you want to disable local (gemeinden) data
-const showLocalData = true;
+const showLocalData = false;
 // number of days you want to display in the chart. set -1 to disable chart
 const nDaysInChart = 45;
+
 
 // languages
 const locInfo = Device.locale().split("_");
@@ -184,7 +185,6 @@ let dateString = getLocaleDate(data[dateKey]);
 let commData = null;
 if (showLocalData) {
   const locData = await getIstatCode();
-  log("Location info", locData);
   if (locData) {
     let istatCode = locData.istatCode;
     let names = locData.names;
@@ -198,6 +198,9 @@ if (showLocalData) {
     commData = await getLocalCovidData(istatCode);
     commData.areaName = names[language in names ? language : fallback];
     commData.rValue = await getRValue(istatCode);
+  }
+  if (commData.cases == null && commData.incidence == null) {
+    commData = null;
   }
 }
 
@@ -238,7 +241,7 @@ async function createWidget(items) {
   let rtext = ""
   if ( data.rValue ) {
     rtext = data.rValue.toLocaleString(locale) + 'ᴿ';
-    if (showLocalData && commData && commData.rValue) {
+    if (commData && commData.rValue) {
         rtext = rtext + "  (" + commData.rValue.toLocaleString(locale) + 'ᴿ)';
     }
   }  else {
@@ -283,24 +286,28 @@ async function createWidget(items) {
   newCasesComm.layoutVertically();
   // fetch new cases
   if (commData) {
-    label = newCasesComm.addText("(+" + commData.cases.toLocaleString() +")");
+    if (commData.cases != null) {
+      label = newCasesComm.addText("(+" + commData.cases.toLocaleString() +")");
+    } else {
+      label = newCasesComm.addText("");
+    }
     label.font = Font.mediumSystemFont(18);
     newCasesComm.addSpacer(2);
-    const area = newCasesComm.addText(commData.areaName);
+    const area = newCasesComm.addText("(" + commData.areaName + ")");
     area.font = Font.mediumSystemFont(12);
     area.textColor = Color.gray();
   }
 
   list.addSpacer(4);
 
-  // new incidents
+  // incidence
   const headerStack = UI.paddedStack(list);
   headerStack.bottomAlignContent();
   header = headerStack.addText(incidenceLoc[language in incidenceLoc ? language : fallback].toUpperCase() + ":");
   header.font = Font.mediumSystemFont(10);
   headerStack.addSpacer(6);
   let incinfotext = totalIncidenceDays.toString();
-  if (showLocalData && commData) {
+  if (commData && commData.incidence != null) {
     incinfotext += " (" + commIncidenceDays.toString() + ")";
   }
   incinfotext += " " + incidenceInfoLoc[language in incidenceLoc ? language : fallback].toUpperCase();
@@ -315,7 +322,7 @@ async function createWidget(items) {
     label = incStack.addText(incidenceData.value.toLocaleString(locale, {maximumFractionDigits:1,}));
     label.font = Font.mediumSystemFont(22);
     label.textColor = getIncidenceColor(incidenceData.value);
-    if (commData) {
+    if (commData && commData.incidence != null) {
       incStack.addSpacer(14);
       label = incStack.addText("("+commData.incidence.toLocaleString(locale, {maximumFractionDigits:1,})+")");
       label.font = Font.mediumSystemFont(18);
@@ -555,9 +562,15 @@ async function getLocalCovidData(istatCode) {
     if (comm.municipalityIstatCode != istatCode) {
       return null;
     } else {
+      let sum = null;
+      if (comm[commPcrKey] != null || comm[commAgKey] != null){
+        sum = comm[commPcrKey] ? comm[commPcrKey] : 0;
+        sum += comm[commAgKey] ? comm[commAgKey] : 0;
+      }
+      let incidence = comm[commIncidenceKey] != null ? comm[commIncidenceKey] * 100 : null;
       return {
-        cases: comm[commPcrKey]+comm[commAgKey],
-        incidence: comm[commIncidenceKey] * 100,
+        cases: sum,
+        incidence: incidence,
       };
     }
   } catch (e) {
@@ -589,11 +602,11 @@ async function getIstatCode() {
         names["it"] = geo.namedetails["name"];
       }
       log(location);
-      log(geo.display_name);
     } else {
       logWarning("No GPS data provided. Did you check the permissions for Scriptable?");
       return null;
     }
+    log({istatCode : istatCode, names : names});
     return {istatCode : istatCode, names : names};
   } catch (e) {
     logWarning(e);
